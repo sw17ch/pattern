@@ -1,4 +1,5 @@
-#include "pattern/ports/osx.h"
+#include "pattern/ports/port.h"
+#include "pattern/ports/osx_types.h"
 
 static void * pattern_surrogate(void * arg) {
     struct pattern_task * t = arg;
@@ -10,7 +11,7 @@ static void * pattern_surrogate(void * arg) {
     return NULL;
 }
 
-enum pattern_status pattern_port_start_task(
+enum pattern_status pattern_port_create_task(
     struct pattern_task * t) {
     pthread_mutex_init(&t->port.mutex_run, NULL);
     pthread_mutex_init(&t->port.mutex_running, NULL);
@@ -19,6 +20,8 @@ enum pattern_status pattern_port_start_task(
     pthread_mutex_lock(&t->port.mutex_run);
 
     pthread_create(&t->port.thread, NULL, pattern_surrogate, t);
+
+    return pattern_ok;
 }
 
 enum pattern_status pattern_port_run_task(struct pattern_task * t) {
@@ -50,4 +53,6 @@ enum pattern_status pattern_port_task_yield(struct pattern_task * t) {
 
     // Inform the scheduler that the task is now running.
     pthread_mutex_unlock(&t->port.mutex_running);
+
+    return pattern_ok;
 }

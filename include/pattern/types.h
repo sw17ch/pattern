@@ -30,7 +30,7 @@ struct pattern_msg_buf {
 
 struct pattern_task;
 
-typedef enum pattern_status (pattern_task_fn) (
+typedef enum pattern_status pattern_task_fn (
     struct pattern_task * task);
 
 struct pattern_task {
