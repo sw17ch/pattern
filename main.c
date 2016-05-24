@@ -44,8 +44,10 @@ int main(int argc, char * argv[]) {
     (void)argc;
     (void)argv;
 
+    // Initialize the scheduler first.
     pattern_sched_init(&sched);
 
+    // Once we have a scheduler, add all our tasks.
     for (size_t i = 0; i < ALEN(task_data); i++) {
         pattern_sched_add_task(
             &sched,
@@ -54,18 +56,31 @@ int main(int argc, char * argv[]) {
             task_data[i].entry);
     }
 
+    // Now that the scheduler has tasks, we're going to do a
+    // single-step of the scheduler in a loop.
     for (size_t i = 0; i < 100; i++) {
         struct pattern_task const * task = NULL;
 
-        if (pattern_ok != pattern_sched_run_one(&sched, &task)) {
-            return 1;
+        // Step the scheduler once. Capture a reference to the task
+        // that the scheduler tried to run.
+        enum pattern_status const run_stat =
+            pattern_sched_run_one(&sched, &task);
+
+        if (pattern_ok != run_stat) {
+            // If running the task failed for some reason, report the
+            // error on the console.
+            printf("ERROR running %s (%zu): %d\n",
+                   task->name,
+                   task->id,
+                   run_stat);
         } else {
+            // If running the task succeeded, print any message it
+            // reported on the console.
             if (sched.msg.len > 0) {
                 printf("MSG from %s (%zu): %s\n",
                        task->name,
                        task->id,
                        sched.msg.chars);
-                sched.msg.len = 0;
             }
         }
     }
