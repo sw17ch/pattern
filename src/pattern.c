@@ -13,6 +13,9 @@ void pattern_sched_init(struct pattern * pat) {
             .len = 0,
         },
     };
+
+    // TODO: propagate error codes from this call
+    pattern_port_sched_init(pat);
 }
 
 void pattern_sched_add_task(struct pattern * pat, struct pattern_task * buf, char const * name, pattern_task_fn * task) {

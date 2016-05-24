@@ -54,6 +54,8 @@ struct pattern {
 
     struct pattern_msg_buf msg;
     char msg_chars[MAX_MSG_LEN];
+
+    struct pattern_port port;
 };
 
 #endif /* PATTERN_TYPES_H */
