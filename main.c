@@ -1,14 +1,39 @@
 #include <stdio.h>
 #include "pattern.h"
 
-struct pattern sched;
-struct pattern_task task_buffers[4];
+#define ALEN(ARR) (sizeof(ARR) / sizeof(ARR[0]))
 
-enum pattern_status task_entry(struct pattern_task * task) {
+static enum pattern_status task_entry(struct pattern_task * task);
+static enum pattern_status task_other_entry(struct pattern_task * task);
+
+static struct {
+    struct pattern_task buff;
+    char const * name;
+    pattern_task_fn * entry;
+} task_data[] = {
+    { .name = "t1", .entry = task_entry },
+    { .name = "t2", .entry = task_entry },
+    { .name = "t3", .entry = task_other_entry },
+};
+
+static struct pattern sched;
+
+static enum pattern_status task_entry(struct pattern_task * task) {
     size_t tick = 0;
 
     while (true) {
         TASK_PRINTF(task, "tick %zu", tick++);
+        pattern_task_yield(task);
+    }
+
+    return pattern_ok;
+}
+
+static enum pattern_status task_other_entry(struct pattern_task * task) {
+    size_t tick = 0;
+
+    while (true) {
+        TASK_PRINTF(task, "other tick %zu", tick++);
         pattern_task_yield(task);
     }
 
@@ -20,10 +45,14 @@ int main(int argc, char * argv[]) {
     (void)argv;
 
     pattern_sched_init(&sched);
-    pattern_sched_add_task(&sched, &task_buffers[0], "first", task_entry);
-    pattern_sched_add_task(&sched, &task_buffers[1], "second", task_entry);
-    pattern_sched_add_task(&sched, &task_buffers[2], "third", task_entry);
-    pattern_sched_add_task(&sched, &task_buffers[3], "fourth", task_entry);
+
+    for (size_t i = 0; i < ALEN(task_data); i++) {
+        pattern_sched_add_task(
+            &sched,
+            &task_data[i].buff,
+            task_data[i].name,
+            task_data[i].entry);
+    }
 
     for (size_t i = 0; i < 100; i++) {
         struct pattern_task const * task = NULL;
@@ -32,8 +61,10 @@ int main(int argc, char * argv[]) {
             return 1;
         } else {
             if (sched.msg.len > 0) {
-                printf("MSG from %s: %s\n",
-                       task->name, sched.msg.chars);
+                printf("MSG from %s (%zu): %s\n",
+                       task->name,
+                       task->id,
+                       sched.msg.chars);
                 sched.msg.len = 0;
             }
         }
