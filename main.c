@@ -69,17 +69,17 @@ int main(int argc, char * argv[]) {
         if (pattern_ok != run_stat) {
             // If running the task failed for some reason, report the
             // error on the console.
-            printf("ERROR running %s (%zu): %d\n",
-                   task->name,
+            printf("ERROR running %03zu/%s: %d\n",
                    task->id,
+                   task->name,
                    run_stat);
         } else {
             // If running the task succeeded, print any message it
             // reported on the console.
             if (sched.msg.len > 0) {
-                printf("MSG from %s (%zu): %s\n",
-                       task->name,
+                printf("MSG from %03zu/%s: %s\n",
                        task->id,
+                       task->name,
                        sched.msg.chars);
             }
         }
