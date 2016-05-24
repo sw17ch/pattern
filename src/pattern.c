@@ -26,6 +26,7 @@ void pattern_sched_add_task(struct pattern * pat, struct pattern_task * buf, cha
         pat->head = pat->tail = buf;
     } else {
         pat->tail->next = buf;
+        pat->tail = buf;
     }
 
     *buf = (struct pattern_task) {

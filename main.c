@@ -2,7 +2,7 @@
 #include "pattern.h"
 
 struct pattern sched;
-struct pattern_task task_buffers[1];
+struct pattern_task task_buffers[4];
 
 enum pattern_status task_entry(struct pattern_task * task) {
     size_t tick = 0;
@@ -22,6 +22,8 @@ int main(int argc, char * argv[]) {
     pattern_sched_init(&sched);
     pattern_sched_add_task(&sched, &task_buffers[0], "first", task_entry);
     pattern_sched_add_task(&sched, &task_buffers[1], "second", task_entry);
+    pattern_sched_add_task(&sched, &task_buffers[2], "third", task_entry);
+    pattern_sched_add_task(&sched, &task_buffers[3], "fourth", task_entry);
 
     for (size_t i = 0; i < 100; i++) {
         struct pattern_task const * task = NULL;
