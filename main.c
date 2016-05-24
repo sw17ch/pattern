@@ -23,7 +23,7 @@ int main(int argc, char * argv[]) {
     pattern_sched_add_task(&sched, &task_buffers[0], "first", task_entry);
     pattern_sched_add_task(&sched, &task_buffers[1], "second", task_entry);
 
-    while (true) {
+    for (size_t i = 0; i < 100; i++) {
         struct pattern_task const * task = NULL;
 
         if (pattern_ok != pattern_sched_run_one(&sched, &task)) {
