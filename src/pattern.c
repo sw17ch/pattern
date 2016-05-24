@@ -55,12 +55,18 @@ enum pattern_status pattern_sched_run_one(struct pattern * pat, struct pattern_t
         *task = t;
     }
 
+    // Reset the message buffer length so that any message from the
+    // previous task is cleared.
     pat->msg.len = 0;
-    pattern_port_run_task(t);
 
+    // Capture the status of running the task.
+    enum pattern_status const run_stat = pattern_port_run_task(t);
+
+    // Always advance the task. If one task failed to run, it's
+    // possible others may succeed.
     pat->next = t->next;
 
-    return pattern_ok;
+    return run_stat;
 }
 
 void pattern_task_yield(struct pattern_task const * task) {
