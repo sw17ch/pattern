@@ -22,13 +22,6 @@ void pattern_sched_add_task(struct pattern * pat, struct pattern_task * buf, cha
     PRASSERT(task);
     PRASSERT(buf->next == NULL);
 
-    if (NULL == pat->head) {
-        pat->head = pat->tail = buf;
-    } else {
-        pat->tail->next = buf;
-        pat->tail = buf;
-    }
-
     *buf = (struct pattern_task) {
         .pat = pat,
         .next = NULL,
@@ -37,6 +30,13 @@ void pattern_sched_add_task(struct pattern * pat, struct pattern_task * buf, cha
         .entry = task,
         .dead = false,
     };
+
+    if (NULL == pat->head) {
+        pat->head = pat->tail = buf;
+    } else {
+        pat->tail->next = buf;
+        pat->tail = buf;
+    }
 
     pattern_port_create_task(buf);
 }
