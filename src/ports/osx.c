@@ -3,7 +3,7 @@
 
 static void * pattern_surrogate(void * arg) {
     struct pattern_task * t = arg;
-    struct pattern const * const sched = t->pat;
+    struct pattern * const sched = t->pat;
 
     pthread_mutex_lock(&t->port.mutex_run);
     pthread_mutex_unlock(&sched->port.mutex_running);
@@ -30,7 +30,7 @@ enum pattern_status pattern_port_create_task(struct pattern_task * t) {
 }
 
 enum pattern_status pattern_port_run_task(struct pattern_task * t) {
-    struct pattern const * const sched = t->pat;
+    struct pattern * const sched = t->pat;
 
     // Lock the running and yielded mutexes so that the scheduled task
     // must unlock them before we can continue.
@@ -52,7 +52,7 @@ enum pattern_status pattern_port_run_task(struct pattern_task * t) {
 }
 
 enum pattern_status pattern_port_task_yield(struct pattern_task * t) {
-    struct pattern const * const sched = t->pat;
+    struct pattern * const sched = t->pat;
 
     // Unlock the yielded mutex to indicate that the task is done.
     pthread_mutex_unlock(&sched->port.mutex_yielded);
