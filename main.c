@@ -6,11 +6,13 @@
 static enum pattern_status task_entry(struct pattern_task * task);
 static enum pattern_status task_other_entry(struct pattern_task * task);
 
-static struct {
+struct task_description {
     struct pattern_task buff;
     char const * name;
     pattern_task_fn * entry;
-} task_data[] = {
+};
+
+static struct task_description task_data[] = {
     { .name = "t1", .entry = task_entry },
     { .name = "t2", .entry = task_entry },
     { .name = "t3", .entry = task_other_entry },
@@ -56,31 +58,28 @@ int main(int argc, char * argv[]) {
             task_data[i].entry);
     }
 
-    // Now that the scheduler has tasks, we're going to do a
-    // single-step of the scheduler in a loop.
-    for (size_t i = 0; i < 100; i++) {
-        struct pattern_task const * task = NULL;
+    // Now that the scheduler has tasks, we're going to perform
+    // several iterations over all the tasks.
+    for (size_t i = 0; i < 10; i++) {
+        // We start by creating an iterator of all the tasks.
+        struct pattern_task_iter iter;
+        pattern_sched_task_iter_init(&sched, &iter);
 
-        // Step the scheduler once. Capture a reference to the task
-        // that the scheduler tried to run.
-        enum pattern_status const run_stat =
-            pattern_sched_run_one(&sched, &task);
+        // Then we walk over each task in order until there are no
+        // more to run.
+        struct pattern_task * task = NULL;
+        while ((task = pattern_sched_task_iter_next(&iter))) {
+            enum pattern_status const run_stat =
+                pattern_sched_run_task(task);
 
-        if (pattern_ok != run_stat) {
-            // If running the task failed for some reason, report the
-            // error on the console.
-            printf("ERROR running %03zu/%s: %d\n",
-                   task->id,
-                   task->name,
-                   run_stat);
-        } else {
-            // If running the task succeeded, print any message it
-            // reported on the console.
-            if (sched.msg.len > 0) {
-                printf("MSG from %03zu/%s: %s\n",
-                       task->id,
-                       task->name,
-                       sched.msg.chars);
+            if (pattern_ok != run_stat) {
+                printf("ERROR running %03zu/%s: %d\n",
+                       task->id, task->name, run_stat);
+            } else {
+                if (sched.msg.len > 0) {
+                    printf("MSG from %03zu/%s: %s\n",
+                           task->id, task->name, sched.msg.chars);
+                }
             }
         }
     }

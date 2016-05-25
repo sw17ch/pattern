@@ -34,18 +34,42 @@ void pattern_sched_add_task(
     char const * name,
     pattern_task_fn * task);
 
+
 /**
- * @breif Run the next task until it yields.
+ * @breif Get an iterator for the tasks in the scheduler.
  *
- * Use this function to run a single step of the scheduler. This will
- * run the next task until it yields.
+ * This lets the host program iterate over tasks in the scheduler.
  *
- * @param pat The scheduler to run.
- * @param task An optional reference to the task that was run.
+ * @param pat The scheduler from which to build the iterator.
+ * @param iter The iterator to be populated.
  */
-enum pattern_status pattern_sched_run_one(
+void pattern_sched_task_iter_init(
     struct pattern * pat,
-    struct pattern_task const ** task);
+    struct pattern_task_iter * iter);
+
+/**
+ * @breif Return a task and advance the iterator
+ *
+ * Return the current task referenced by the iterator and advance the
+ * iterator to the next task. The return value will be NULL when the
+ * last value has already been returned.
+ *
+ * The iterator can be reset using @c pattern_sched_task_iter_init.
+ *
+ * @param iter The iterator to use.
+ */
+struct pattern_task * pattern_sched_task_iter_next(
+    struct pattern_task_iter * iter);
+
+/**
+ * @breif Run the specified task
+ *
+ * This runs the specified task.
+ *
+ * @param task The task to run.
+ */
+enum pattern_status pattern_sched_run_task(
+    struct pattern_task * task);
 
 /**
  * @breif Yield the CPU from inside the task.

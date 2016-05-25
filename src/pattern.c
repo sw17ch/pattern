@@ -44,30 +44,37 @@ void pattern_sched_add_task(struct pattern * pat, struct pattern_task * buf, cha
     pattern_port_create_task(buf);
 }
 
-enum pattern_status pattern_sched_run_one(struct pattern * pat, struct pattern_task const ** task) {
+void pattern_sched_task_iter_init(struct pattern * pat, struct pattern_task_iter * iter) {
     PRASSERT(pat);
-    PRASSERT(pat->head);
+    PRASSERT(iter);
 
-    if (pat->next == NULL) {
-        pat->next = pat->head;
+    *iter = (struct pattern_task_iter) {
+        .pat = pat,
+        .next = pat->head,
+    };
+}
+
+struct pattern_task * pattern_sched_task_iter_next(struct pattern_task_iter * iter) {
+    PRASSERT(iter);
+
+    struct pattern_task * task = iter->next;
+
+    if (iter->next) {
+        iter->next = iter->next->next;
     }
 
-    struct pattern_task * const t = pat->next;
+    return task;
+}
 
-    if (NULL != task) {
-        *task = t;
-    }
+enum pattern_status pattern_sched_run_task(struct pattern_task * task) {
+    PRASSERT(task);
 
     // Reset the message buffer length so that any message from the
     // previous task is cleared.
-    pat->msg.len = 0;
+    task->pat->msg.len = 0;
 
     // Capture the status of running the task.
-    enum pattern_status const run_stat = pattern_port_run_task(t);
-
-    // Always advance the task. If one task failed to run, it's
-    // possible others may succeed.
-    pat->next = t->next;
+    enum pattern_status const run_stat = pattern_port_run_task(task);
 
     return run_stat;
 }

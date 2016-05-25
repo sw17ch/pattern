@@ -58,4 +58,9 @@ struct pattern {
     struct pattern_port port;
 };
 
+struct pattern_task_iter {
+    struct pattern * pat;
+    struct pattern_task * next;
+};
+
 #endif /* PATTERN_TYPES_H */
