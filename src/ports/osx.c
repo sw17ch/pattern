@@ -1,17 +1,6 @@
 #include "pattern/ports/port.h"
 #include "pattern/ports/osx_types.h"
 
-static void * pattern_surrogate(void * arg) {
-    struct pattern_task * t = arg;
-    struct pattern * const sched = t->pat;
-
-    pthread_mutex_lock(&t->port.mutex_run);
-    pthread_mutex_unlock(&sched->port.mutex_running);
-    t->entry(t);
-
-    return NULL;
-}
-
 enum pattern_status pattern_port_sched_init(struct pattern * p) {
     pthread_mutex_init(&p->port.mutex_running, NULL);
     pthread_mutex_init(&p->port.mutex_yielded, NULL);
@@ -20,11 +9,33 @@ enum pattern_status pattern_port_sched_init(struct pattern * p) {
 }
 
 enum pattern_status pattern_port_create_task(struct pattern_task * t) {
+    struct pattern * const sched = t->pat;
+
+    // Create the thread's run mutex.
     pthread_mutex_init(&t->port.mutex_run, NULL);
 
+    // Lock it initially to keep the task from from proceeding past
+    // its first yield. Also lock the yield mutex so that we can
+    // detect when the task has yielded for the first time. Once it
+    // yields, the task has completed its startup operations and we
+    // can return to the scheduler.
     pthread_mutex_lock(&t->port.mutex_run);
+    pthread_mutex_lock(&sched->port.mutex_yielded);
 
-    pthread_create(&t->port.thread, NULL, pattern_surrogate, t);
+    // Create the thread that hosts the task's stack.
+    pthread_create(
+        &t->port.thread, NULL,
+        (void *(*)(void *))t->entry, t);
+
+    // We acquire another lock on the yield mutex so that we're
+    // guaranteed that the task is yielded.
+    pthread_mutex_lock(&sched->port.mutex_yielded);
+
+    // Once we get the yield lock, we can return all the mutexes to
+    // their required state for the next scheduling event.
+    pthread_mutex_unlock(&sched->port.mutex_running);
+    pthread_mutex_unlock(&sched->port.mutex_yielded);
+
 
     return pattern_ok;
 }

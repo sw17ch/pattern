@@ -1,12 +1,14 @@
 #include "pattern.h"
 #include "pattern/ports/port.h"
 
-void pattern_sched_init(struct pattern * pat) {
+void pattern_sched_init(struct pattern * pat, void * event_collection, void * tmp_event) {
     *pat = (struct pattern) {
         .head = NULL,
         .tail = NULL,
         .next = NULL,
         .next_id = 0,
+        .event_collection = event_collection,
+        .tmp_event = tmp_event,
         .msg = {
             .capacity = MAX_MSG_LEN,
             .chars = pat->msg_chars,
@@ -31,7 +33,6 @@ void pattern_sched_add_task(struct pattern * pat, struct pattern_task * buf, cha
         .id = pat->next_id++,
         .name = name,
         .entry = task,
-        .dead = false,
     };
 
     if (NULL == pat->head) {
@@ -66,20 +67,60 @@ struct pattern_task * pattern_sched_task_iter_next(struct pattern_task_iter * it
     return task;
 }
 
-enum pattern_status pattern_sched_run_task(struct pattern_task * task) {
+enum pattern_status pattern_sched_run_task(struct pattern_task * task, void const * event) {
     PRASSERT(task);
 
-    // Reset the message buffer length so that any message from the
-    // previous task is cleared.
-    task->pat->msg.len = 0;
+    // Get the event ID.
+    event_id const eid = pattern_usr_event_id(
+        task->pat->event_collection,
+        event);
 
-    // Capture the status of running the task.
-    enum pattern_status const run_stat = pattern_port_run_task(task);
+    // Make it into a mask;
+    uint32_t const mask = 1 << eid;
 
-    return run_stat;
+    if (task->yield_mask & mask) {
+        // Reset the message buffer length so that any message from the
+        // previous task is cleared.
+        task->pat->msg.len = 0;
+
+        // Reset the yield mask.
+        task->yield_mask = 0;
+
+        // Set the input event.
+        if (task->in_event) {
+            *(task->in_event) = event;
+        }
+
+        // Set the output event.
+        if (task->out_event) {
+            *(task->out_event) = task->pat->tmp_event;
+        }
+
+        // Capture the status of running the task.
+        enum pattern_status const run_stat = pattern_port_run_task(task);
+
+        return run_stat;
+    } else {
+        return pattern_err_skip;
+    }
 }
 
-void pattern_task_yield(struct pattern_task const * task) {
+void pattern_task_yield(
+    struct pattern_task const * task,
+    uint32_t yield_mask,
+    bool new_event,
+    void const ** ptr_in_event,
+    void ** ptr_out_event) {
     struct pattern_task * const mut_task = (struct pattern_task *)task;
+
+    if (new_event && task->out_event) {
+        pattern_usr_write_event(task->pat->event_collection, *task->out_event);
+    }
+
+
+    mut_task->yield_mask = yield_mask;
+    mut_task->in_event = ptr_in_event;
+    mut_task->out_event = ptr_out_event;
+
     pattern_port_task_yield(mut_task);
 }
